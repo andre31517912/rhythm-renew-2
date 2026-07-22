@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "uysxk_ler_V125ZaQBB9f"
+uri = "file://rhythm-renew-source.tar.gz"
+type = "unspecified"
+title = "Rhythm Renew — Source + Setup Guide (79 MB)"
+
+[[outputs]]
+id = "oD9vmh4NT9uo7I2uqmSfo"
+uri = "file://TECH_STACK.md"
+type = "text"
+title = "Rhythm Renew — Tech Stack & Dependencies"
