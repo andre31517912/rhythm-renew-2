@@ -8,6 +8,8 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+const AI_MODEL = process.env.AI_MODEL || "gpt-4o";
+
 const CATEGORY_PROMPTS: Record<string, (phase: string, cycleDay: number, goal: string) => string> = {
   nutrition: (phase, cycleDay, goal) =>
     `You are a cycle-syncing nutritionist. A woman is on cycle day ${cycleDay} in her ${phase} phase with a goal of ${goal}.
@@ -70,7 +72,7 @@ Tailor your responses specifically to the ${phase || "current"} phase. Keep resp
       res.setHeader("Connection", "keep-alive");
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-5.2",
+        model: AI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -115,7 +117,7 @@ Tailor your responses specifically to the ${phase || "current"} phase. Keep resp
       );
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-5.2",
+        model: AI_MODEL,
         messages: [{ role: "user", content: prompt }],
         max_completion_tokens: 512,
       });
