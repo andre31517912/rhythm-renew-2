@@ -185,6 +185,8 @@ export default function SoulScreen() {
                 category="meditation"
                 accentColor={phaseColor}
                 label={`Soul guidance for your ${phaseInfo?.phaseName ?? ""} phase`}
+                dietaryPreferences={cycleData.dietaryPreferences}
+                allergies={cycleData.allergies}
               />
             </View>
             <View style={styles.section}>

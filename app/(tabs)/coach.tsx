@@ -81,6 +81,8 @@ export default function CoachScreen() {
           phase: phaseInfo?.phaseName,
           cycleDay: phaseInfo?.cycleDay,
           goal: cycleData.goal,
+          dietaryPreferences: cycleData.dietaryPreferences,
+          allergies: cycleData.allergies,
         }),
       });
 

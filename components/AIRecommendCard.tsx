@@ -18,6 +18,8 @@ interface Props {
   category: "nutrition" | "movement" | "meditation" | "music";
   accentColor: string;
   label?: string;
+  dietaryPreferences?: string[];
+  allergies?: string[];
 }
 
 function FormattedLine({ text, baseStyle }: { text: string; baseStyle: object }) {
@@ -39,7 +41,7 @@ function FormattedLine({ text, baseStyle }: { text: string; baseStyle: object })
   );
 }
 
-export function AIRecommendCard({ phase, cycleDay, goal, category, accentColor, label }: Props) {
+export function AIRecommendCard({ phase, cycleDay, goal, category, accentColor, label, dietaryPreferences, allergies }: Props) {
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +73,8 @@ export function AIRecommendCard({ phase, cycleDay, goal, category, accentColor, 
           cycleDay: cycleDay || 1,
           goal: goal || "general wellness",
           category,
+          dietaryPreferences: dietaryPreferences || [],
+          allergies: allergies || [],
         }),
         signal: controller.signal,
         credentials: "include",

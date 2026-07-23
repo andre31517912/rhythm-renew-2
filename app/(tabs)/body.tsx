@@ -18,6 +18,7 @@ import { useCycle } from "@/contexts/CycleContext";
 import Colors from "@/constants/colors";
 import { WaveHeader } from "@/components/WaveHeader";
 import { AIRecommendCard } from "@/components/AIRecommendCard";
+import { RECIPES, filterRecipes, getRecipesForPhase, type Recipe } from "@/data/phase-content";
 
 type FoodIconDef = { type: "icon"; name: string } | { type: "image"; source: ReturnType<typeof require> } | { type: "emoji"; char: string };
 
@@ -253,6 +254,14 @@ export default function BodyScreen() {
   const workouts = WORKOUTS[phase];
   const nutrition = NUTRITION[phase];
 
+  const phaseRecipes = getRecipesForPhase(phase);
+  const filteredRecipes = filterRecipes(
+    phaseRecipes,
+    cycleData.dietaryPreferences || [],
+    cycleData.allergies || [],
+  );
+  const hasDietaryFilters = (cycleData.dietaryPreferences?.length ?? 0) > 0 || (cycleData.allergies?.length ?? 0) > 0;
+
   const typeColors: Record<string, string> = {
     Yoga: "#C0004A",
     HIIT: "#B52035",
@@ -306,6 +315,8 @@ export default function BodyScreen() {
               category="movement"
               accentColor={phaseColor}
               label={`Personalized movement for your ${phaseInfo?.phaseName ?? ""} phase`}
+              dietaryPreferences={cycleData.dietaryPreferences}
+              allergies={cycleData.allergies}
             />
             <Text style={styles.sectionTitle}>On-Demand Workouts</Text>
             <Text style={styles.sectionSub}>
@@ -358,6 +369,8 @@ export default function BodyScreen() {
               category="nutrition"
               accentColor={phaseColor}
               label={`Personalized nutrition for your ${phaseInfo?.phaseName ?? ""} phase`}
+              dietaryPreferences={cycleData.dietaryPreferences}
+              allergies={cycleData.allergies}
             />
 
             <View style={[styles.nutritionHero, { backgroundColor: phaseColorLight }]}>
@@ -440,6 +453,71 @@ export default function BodyScreen() {
                 </View>
               </View>
             ))}
+
+            {/* Curated Recipes — filtered by dietary preferences */}
+            {filteredRecipes.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { marginTop: 32 }]}>
+                  {hasDietaryFilters ? "Recipes For Your Diet" : "More Phase Recipes"}
+                </Text>
+                <Text style={styles.sectionSub}>
+                  {hasDietaryFilters
+                    ? `Filtered for your preferences: ${[...(cycleData.dietaryPreferences || []), ...(cycleData.allergies || []).map(a => `no ${a}`)].join(", ")}`
+                    : `${filteredRecipes.length} curated recipes for your ${phaseInfo?.phaseName?.toLowerCase()} phase`}
+                </Text>
+                {filteredRecipes.map((recipe) => (
+                  <View
+                    key={recipe.id}
+                    style={[styles.recipeCard, { borderLeftColor: phaseColor }]}
+                  >
+                    <View style={styles.recipeHeader}>
+                      <View style={[styles.recipeEmojiWrap, { backgroundColor: Colors.blushLight }]}>
+                        <Ionicons name="restaurant" size={24} color={Colors.hotPink} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.recipeName}>{recipe.name}</Text>
+                        <View style={styles.recipeTimeBadge}>
+                          <Ionicons name="time-outline" size={12} color={phaseColor} />
+                          <Text style={[styles.recipeTime, { color: phaseColor }]}>{recipe.prepTime} min</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Text style={styles.recipeDesc}>{recipe.description}</Text>
+                    {recipe.dietTags.length > 0 && (
+                      <View style={styles.dietTagRow}>
+                        {recipe.dietTags.map((tag, j) => (
+                          <View key={j} style={[styles.dietTag, { backgroundColor: phaseColor + "18" }]}>
+                            <Text style={[styles.dietTagText, { color: phaseColor }]}>{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    <View style={[styles.ingredientsBox, { backgroundColor: phaseColor + "10" }]}>
+                      <Text style={[styles.ingredientsLabel, { color: phaseColor }]}>Ingredients</Text>
+                      <View style={styles.ingredientsList}>
+                        {recipe.ingredients.map((ing, j) => (
+                          <View key={j} style={styles.ingredientRow}>
+                            <View style={[styles.ingredientDot, { backgroundColor: phaseColor }]} />
+                            <Text style={styles.ingredientText}>{ing}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={[styles.ingredientsBox, { backgroundColor: phaseColor + "08", marginTop: 8 }]}>
+                      <Text style={[styles.ingredientsLabel, { color: phaseColor }]}>Steps</Text>
+                      <View style={styles.ingredientsList}>
+                        {recipe.steps.map((step, j) => (
+                          <View key={j} style={styles.ingredientRow}>
+                            <Text style={[styles.ingredientText, { fontFamily: "Manrope_600SemiBold", color: phaseColor, minWidth: 18 }]}>{j + 1}.</Text>
+                            <Text style={styles.ingredientText}>{step}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
 
             {/* Protein CTA */}
             <Pressable
@@ -578,4 +656,7 @@ const styles = StyleSheet.create({
   proteinCtaSub: { fontFamily: "Manrope_400Regular", fontSize: 13, color: "rgba(255,255,255,0.8)" },
   proteinCtaBtn: { backgroundColor: Colors.white, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 50, alignSelf: "flex-start" },
   proteinCtaBtnText: { fontFamily: "Manrope_700Bold", fontSize: 13 },
+  dietTagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 },
+  dietTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 50 },
+  dietTagText: { fontFamily: "Manrope_500Medium", fontSize: 11, textTransform: "capitalize" },
 });

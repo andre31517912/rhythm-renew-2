@@ -145,6 +145,8 @@ export default function ProfileScreen() {
             <SettingRow icon="person-outline" label="Name" value={cycleData.name || "—"} color={phaseColor} />
             <SettingRow icon="calendar-outline" label="Cycle Length" value={`${cycleData.cycleLength} days`} color={phaseColor} />
             <SettingRow icon="trophy-outline" label="Primary Goal" value={GOAL_LABELS[cycleData.goal]} color={phaseColor} />
+            <SettingRow icon="nutrition-outline" label="Diet" value={(cycleData.dietaryPreferences?.length ?? 0) > 0 ? cycleData.dietaryPreferences.join(", ") : "No preference"} color={phaseColor} />
+            <SettingRow icon="alert-circle-outline" label="Allergies" value={(cycleData.allergies?.length ?? 0) > 0 ? cycleData.allergies.join(", ") : "None"} color={phaseColor} />
 
             <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Settings</Text>
 
