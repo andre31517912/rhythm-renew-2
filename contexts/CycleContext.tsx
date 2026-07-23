@@ -9,6 +9,8 @@ export interface CycleData {
   cycleLength: number;
   goal: Goal;
   name: string;
+  dietaryPreferences: string[];
+  allergies: string[];
 }
 
 export interface PhaseInfo {
@@ -123,6 +125,8 @@ const defaultCycleData: CycleData = {
   cycleLength: 28,
   goal: "sync",
   name: "",
+  dietaryPreferences: [],
+  allergies: [],
 };
 
 const CycleContext = createContext<CycleContextValue | null>(null);

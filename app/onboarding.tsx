@@ -36,6 +36,26 @@ const GOALS: { id: Goal; label: string; description: string }[] = [
   { id: "emotional-regulation", label: "Emotional Wellness", description: "Navigate moods with ease" },
 ];
 
+const DIET_OPTIONS: { id: string; label: string; icon: string }[] = [
+  { id: "vegan", label: "Vegan", icon: "leaf" },
+  { id: "vegetarian", label: "Vegetarian", icon: "flower" },
+  { id: "gluten-free", label: "Gluten-Free", icon: "nutrition" },
+  { id: "dairy-free", label: "Dairy-Free", icon: "water" },
+  { id: "paleo", label: "Paleo", icon: "flame" },
+  { id: "pescatarian", label: "Pescatarian", icon: "fish" },
+];
+
+const ALLERGY_OPTIONS: { id: string; label: string }[] = [
+  { id: "gluten", label: "Gluten" },
+  { id: "dairy", label: "Dairy" },
+  { id: "eggs", label: "Eggs" },
+  { id: "fish", label: "Fish" },
+  { id: "shellfish", label: "Shellfish" },
+  { id: "soy", label: "Soy" },
+  { id: "tree nuts", label: "Tree Nuts" },
+  { id: "peanuts", label: "Peanuts" },
+];
+
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { completeOnboarding } = useCycle();
@@ -44,6 +64,8 @@ export default function OnboardingScreen() {
   const [lastPeriodDate, setLastPeriodDate] = useState("");
   const [cycleLength, setCycleLength] = useState("28");
   const [goal, setGoal] = useState<Goal>("sync");
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [allergies, setAllergies] = useState<string[]>([]);
   const [dateError, setDateError] = useState("");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -85,7 +107,7 @@ export default function OnboardingScreen() {
       }
       setDateError("");
     }
-    if (step < 4) {
+    if (step < 6) {
       setStep(step + 1);
     } else {
       await completeOnboarding({
@@ -93,6 +115,8 @@ export default function OnboardingScreen() {
         lastPeriodStart: parseDateInput(lastPeriodDate),
         cycleLength: parseInt(cycleLength) || 28,
         goal,
+        dietaryPreferences,
+        allergies,
       });
       router.replace("/(tabs)");
     }
@@ -109,6 +133,8 @@ export default function OnboardingScreen() {
       setCycleLength={setCycleLength}
     />,
     <GoalStep goal={goal} setGoal={setGoal} />,
+    <DietaryStep selected={dietaryPreferences} setSelected={setDietaryPreferences} />,
+    <AllergyStep selected={allergies} setSelected={setAllergies} />,
     <ReadyStep name={name} />,
   ];
 
@@ -162,7 +188,7 @@ export default function OnboardingScreen() {
           </View>
 
           <View style={styles.stepsIndicator}>
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <View
                 key={i}
                 style={[
@@ -193,7 +219,7 @@ export default function OnboardingScreen() {
                 end={{ x: 1, y: 1 }}
               >
                 <Text style={styles.buttonText}>
-                  {step === 4 ? "Begin Your Journey" : "Continue"}
+                  {step === 6 ? "Begin Your Journey" : "Continue"}
                 </Text>
               </LinearGradient>
             </Pressable>
@@ -325,6 +351,101 @@ function GoalStep({ goal, setGoal }: { goal: Goal; setGoal: (g: Goal) => void })
             </Text>
           </Pressable>
         ))}
+      </View>
+    </View>
+  );
+}
+
+function DietaryStep({
+  selected,
+  setSelected,
+}: {
+  selected: string[];
+  setSelected: (s: string[]) => void;
+}) {
+  function toggle(id: string) {
+    setSelected(
+      selected.includes(id)
+        ? selected.filter((s) => s !== id)
+        : [...selected, id]
+    );
+    Haptics.selectionAsync();
+  }
+
+  return (
+    <View style={styles.step}>
+      <Text style={styles.stepTitle}>Dietary Preferences</Text>
+      <Text style={styles.stepSubtitle}>
+        Select any that apply so our AI recommendations match your diet. You can skip if none apply.
+      </Text>
+      <View style={styles.chipGrid}>
+        {DIET_OPTIONS.map((d) => {
+          const isSelected = selected.includes(d.id);
+          return (
+            <Pressable
+              key={d.id}
+              style={[styles.dietChip, isSelected && styles.dietChipSelected]}
+              onPress={() => toggle(d.id)}
+            >
+              <Ionicons
+                name={d.icon as any}
+                size={18}
+                color={isSelected ? Colors.white : Colors.burgundy}
+              />
+              <Text style={[styles.dietChipText, isSelected && styles.dietChipTextSelected]}>
+                {d.label}
+              </Text>
+              {isSelected && (
+                <Ionicons name="checkmark-circle" size={16} color={Colors.white} />
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function AllergyStep({
+  selected,
+  setSelected,
+}: {
+  selected: string[];
+  setSelected: (s: string[]) => void;
+}) {
+  function toggle(id: string) {
+    setSelected(
+      selected.includes(id)
+        ? selected.filter((s) => s !== id)
+        : [...selected, id]
+    );
+    Haptics.selectionAsync();
+  }
+
+  return (
+    <View style={styles.step}>
+      <Text style={styles.stepTitle}>Allergies & Intolerances</Text>
+      <Text style={styles.stepSubtitle}>
+        Select any food allergies or intolerances. Our AI will never recommend foods containing these. Skip if none apply.
+      </Text>
+      <View style={styles.chipGrid}>
+        {ALLERGY_OPTIONS.map((a) => {
+          const isSelected = selected.includes(a.id);
+          return (
+            <Pressable
+              key={a.id}
+              style={[styles.allergyChip, isSelected && styles.allergyChipSelected]}
+              onPress={() => toggle(a.id)}
+            >
+              <Text style={[styles.allergyChipText, isSelected && styles.allergyChipTextSelected]}>
+                {a.label}
+              </Text>
+              {isSelected && (
+                <Ionicons name="close-circle" size={16} color={Colors.white} />
+              )}
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -562,5 +683,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.white,
     letterSpacing: 0.3,
+  },
+  chipGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  dietChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 50,
+    backgroundColor: Colors.blushLight,
+    borderWidth: 1.5,
+    borderColor: Colors.blushMid,
+  },
+  dietChipSelected: {
+    backgroundColor: Colors.hotPink,
+    borderColor: Colors.hotPink,
+  },
+  dietChipText: {
+    fontFamily: "Manrope_600SemiBold",
+    fontSize: 14,
+    color: Colors.burgundy,
+  },
+  dietChipTextSelected: {
+    color: Colors.white,
+  },
+  allergyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 50,
+    backgroundColor: Colors.blushLight,
+    borderWidth: 1.5,
+    borderColor: Colors.blushMid,
+  },
+  allergyChipSelected: {
+    backgroundColor: "#C0392B",
+    borderColor: "#C0392B",
+  },
+  allergyChipText: {
+    fontFamily: "Manrope_600SemiBold",
+    fontSize: 14,
+    color: Colors.burgundy,
+  },
+  allergyChipTextSelected: {
+    color: Colors.white,
   },
 });

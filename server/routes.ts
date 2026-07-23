@@ -10,16 +10,27 @@ const openai = new OpenAI({
 
 const AI_MODEL = process.env.AI_MODEL || "gpt-4o";
 
-const CATEGORY_PROMPTS: Record<string, (phase: string, cycleDay: number, goal: string) => string> = {
-  nutrition: (phase, cycleDay, goal) =>
-    `You are a cycle-syncing nutritionist. A woman is on cycle day ${cycleDay} in her ${phase} phase with a goal of ${goal}.
+function buildDietaryContext(dietaryPreferences: string[], allergies: string[]): string {
+  const parts: string[] = [];
+  if (dietaryPreferences.length > 0) {
+    parts.push(`She follows a ${dietaryPreferences.join(", ")} diet.`);
+  }
+  if (allergies.length > 0) {
+    parts.push(`She has these allergies/intolerances: ${allergies.join(", ")}. NEVER suggest foods containing these allergens.`);
+  }
+  return parts.length > 0 ? "\n\n" + parts.join(" ") : "";
+}
 
-Give her 3 specific, actionable nutrition tips for TODAY. Format each tip as:
+const CATEGORY_PROMPTS: Record<string, (phase: string, cycleDay: number, goal: string, dietaryPreferences: string[], allergies: string[]) => string> = {
+  nutrition: (phase, cycleDay, goal, dietaryPreferences, allergies) =>
+    `You are a cycle-syncing nutritionist. A woman is on cycle day ${cycleDay} in her ${phase} phase with a goal of ${goal}.${buildDietaryContext(dietaryPreferences, allergies)}
+
+Give her 3 specific, actionable nutrition tips for TODAY that respect her dietary preferences and allergies. Format each tip as:
 - **[Food or nutrient name]**: [1–2 sentence explanation of why it helps her right now and how to incorporate it]
 
 End with one sentence about the key nutritional theme for her ${phase} phase. Be warm, specific, and science-backed. Max 200 words.`,
 
-  movement: (phase, cycleDay, goal) =>
+  movement: (phase, cycleDay, goal, dietaryPreferences, allergies) =>
     `You are a cycle-aware fitness coach. A woman is on cycle day ${cycleDay} in her ${phase} phase with a goal of ${goal}.
 
 Give her 3 specific workout recommendations for this phase. Format each as:
@@ -27,7 +38,7 @@ Give her 3 specific workout recommendations for this phase. Format each as:
 
 End with one sentence about her energy levels this phase. Be motivating and science-backed. Max 200 words.`,
 
-  meditation: (phase, cycleDay, goal) =>
+  meditation: (phase, cycleDay, goal, dietaryPreferences, allergies) =>
     `You are a mindfulness coach specializing in women's wellness. A woman is on cycle day ${cycleDay} in her ${phase} phase with a goal of ${goal}.
 
 Give her 2 specific mindfulness practices for this phase. Format each as:
@@ -35,7 +46,7 @@ Give her 2 specific mindfulness practices for this phase. Format each as:
 
 End with an affirmation tailored to her ${phase} phase energy. Be warm, grounding, and specific. Max 180 words.`,
 
-  music: (phase, cycleDay, goal) =>
+  music: (phase, cycleDay, goal, dietaryPreferences, allergies) =>
     `You are a music therapist specializing in cycle-syncing. A woman is on cycle day ${cycleDay} in her ${phase} phase.
 
 Recommend 3 specific songs that match her phase energy. Format each as:
@@ -48,15 +59,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI chat endpoint (streaming)
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages, phase, cycleDay, goal, mood } = req.body;
+      const { messages, phase, cycleDay, goal, mood, dietaryPreferences, allergies } = req.body;
 
-      const systemPrompt = `You are Rhythm, a supportive AI wellness coach for women who uses cycle-syncing science to provide personalized guidance. 
+      const dietContext = (dietaryPreferences?.length || allergies?.length)
+        ? `\n- Dietary Preferences: ${dietaryPreferences?.length ? dietaryPreferences.join(", ") : "none specified"}\n- Allergies/Intolerances: ${allergies?.length ? allergies.join(", ") + " — NEVER suggest foods with these allergens" : "none"}`
+        : "";
+
+      const systemPrompt = `You are Rhythm, a supportive AI wellness coach for women who uses cycle-syncing science to provide personalized guidance.
 
 Current context:
 - Cycle Phase: ${phase || "Unknown"}
 - Cycle Day: ${cycleDay || "Unknown"}
 - Primary Goal: ${goal || "general wellness"}
-- Current Mood: ${mood || "not specified"}
+- Current Mood: ${mood || "not specified"}${dietContext}
 
 Your personality:
 - Warm, supportive, and science-backed
@@ -104,7 +119,7 @@ Tailor your responses specifically to the ${phase || "current"} phase. Keep resp
   // AI personalized recommendations endpoint
   app.post("/api/recommend", async (req, res) => {
     try {
-      const { phase, cycleDay, goal, category } = req.body;
+      const { phase, cycleDay, goal, category, dietaryPreferences, allergies } = req.body;
 
       if (!phase || !category || !CATEGORY_PROMPTS[category]) {
         return res.status(400).json({ error: "Missing required fields: phase, category" });
@@ -113,7 +128,9 @@ Tailor your responses specifically to the ${phase || "current"} phase. Keep resp
       const prompt = CATEGORY_PROMPTS[category](
         phase || "follicular",
         cycleDay || 1,
-        goal || "general wellness"
+        goal || "general wellness",
+        dietaryPreferences || [],
+        allergies || []
       );
 
       const completion = await openai.chat.completions.create({

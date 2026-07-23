@@ -340,6 +340,8 @@ export default function MindScreen() {
               category="meditation"
               accentColor={phaseColor}
               label={`Mindfulness for your ${phaseInfo?.phaseName ?? ""} phase`}
+              dietaryPreferences={cycleData.dietaryPreferences}
+              allergies={cycleData.allergies}
             />
             <Text style={styles.sectionTitle}>Guided Meditations</Text>
             <Text style={styles.sectionSub}>Tap any session to begin — all in-app, no links needed</Text>
@@ -398,6 +400,8 @@ export default function MindScreen() {
               category="music"
               accentColor={phaseColor}
               label={`Music for your ${phaseInfo?.phaseName ?? ""} phase energy`}
+              dietaryPreferences={cycleData.dietaryPreferences}
+              allergies={cycleData.allergies}
             />
             <View style={[styles.playlistHero, { backgroundColor: phaseColor }]}>
               <Text style={styles.playlistMood}>{playlistInfo.mood}</Text>
