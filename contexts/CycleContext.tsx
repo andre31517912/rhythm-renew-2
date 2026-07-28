@@ -11,6 +11,7 @@ export interface CycleData {
   name: string;
   dietaryPreferences: string[];
   allergies: string[];
+  favoriteIngredients: string[];
 }
 
 export interface PhaseInfo {
@@ -53,22 +54,22 @@ const phaseConfig: Record<Phase, {
   },
   follicular: {
     name: "Follicular",
-    color: "#e8006a",
-    colorLight: "#FFB3D4",
+    color: "#E86A00",
+    colorLight: "#FFD4B3",
     description: "Rise & energize",
     hormoneInsight: "Estrogen is rising, bringing clarity and creativity. Your brain is literally more capable of learning new skills right now.",
   },
   ovulatory: {
     name: "Ovulatory",
-    color: "#e8006a",
-    colorLight: "#FFB3D4",
+    color: "#00A878",
+    colorLight: "#B3FFE6",
     description: "Shine & connect",
     hormoneInsight: "Peak estrogen and a surge of LH and testosterone fuel your confidence and social magnetism. You are at your most magnetic.",
   },
   luteal: {
     name: "Luteal",
-    color: "#8B1520",
-    colorLight: "#f0c0c8",
+    color: "#6B3FA0",
+    colorLight: "#DCC0F5",
     description: "Slow & deepen",
     hormoneInsight: "Progesterone rises to support potential pregnancy. If it doesn't happen, levels drop — this is when PMS symptoms can appear.",
   },
@@ -127,6 +128,7 @@ const defaultCycleData: CycleData = {
   name: "",
   dietaryPreferences: [],
   allergies: [],
+  favoriteIngredients: [],
 };
 
 const CycleContext = createContext<CycleContextValue | null>(null);
