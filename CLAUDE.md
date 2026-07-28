@@ -81,6 +81,8 @@ lib/
 |--------|----------|--------------|
 | POST | `/api/chat` | Streaming AI coach (SSE) |
 | POST | `/api/recommend` | AI phase recommendations (nutrition/movement/meditation/music) |
+| GET | `/api/food-search?query=` | USDA FoodData Central autocomplete with nutrient info |
+| POST | `/api/generate-recipe` | AI generates recipe from selected ingredients + phase |
 | GET | `/api/spotify/preview?title=&artist=` | Returns Spotify 30s preview URL |
 
 ---
@@ -127,6 +129,7 @@ git push
 ## Environment Variables (managed by Replit — do not store locally)
 - `AI_INTEGRATIONS_OPENAI_API_KEY` — OpenAI key (Replit AI Integrations)
 - `AI_INTEGRATIONS_OPENAI_BASE_URL` — OpenAI base URL
+- `USDA_API_KEY` — USDA FoodData Central API key (free at https://fdc.nal.usda.gov/api-key-signup)
 - `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` — Spotify API
 - `SESSION_SECRET` — Session signing
 - `EXPO_PUBLIC_DOMAIN` — Backend URL (auto-set by Replit)

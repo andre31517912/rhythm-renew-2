@@ -8,7 +8,7 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-const AI_MODEL = process.env.AI_MODEL || "gpt-4o";
+const AI_MODEL = process.env.AI_MODEL || "gpt-4o-mini";
 
 function buildDietaryContext(dietaryPreferences: string[], allergies: string[]): string {
   const parts: string[] = [];
@@ -144,6 +144,109 @@ Tailor your responses specifically to the ${phase || "current"} phase. Keep resp
     } catch (error) {
       console.error("Recommend error:", error);
       res.status(500).json({ error: "Failed to generate recommendation" });
+    }
+  });
+
+  // USDA FoodData Central search — autocomplete with nutrient info
+  app.get("/api/food-search", async (req, res) => {
+    try {
+      const { query } = req.query as { query: string };
+      if (!query || query.trim().length < 2) {
+        return res.json({ foods: [] });
+      }
+
+      const apiKey = process.env.USDA_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "USDA API key not configured" });
+      }
+
+      const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
+      url.searchParams.set("api_key", apiKey);
+      url.searchParams.set("query", query.trim());
+      url.searchParams.set("dataType", "Foundation,SR Legacy");
+      url.searchParams.set("pageSize", "8");
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`USDA API returned ${response.status}`);
+      }
+
+      const data = await response.json() as any;
+      const KEY_NUTRIENTS = [1003, 1004, 1005, 1008, 1079, 1087, 1089, 1090, 1092, 1093, 1095, 1098, 1104, 1106, 1162, 1165, 1166, 1170, 1175, 1176, 1177, 1178, 1180];
+      const NUTRIENT_NAMES: Record<number, string> = {
+        1003: "Protein", 1004: "Fat", 1005: "Carbs", 1008: "Calories",
+        1079: "Fiber", 1087: "Calcium", 1089: "Iron", 1090: "Magnesium",
+        1092: "Potassium", 1093: "Sodium", 1095: "Zinc", 1098: "Phosphorus",
+        1104: "Vitamin A", 1106: "Vitamin A (RAE)", 1162: "Vitamin C",
+        1165: "Vitamin B1", 1166: "Vitamin B2", 1170: "Vitamin B5",
+        1175: "Vitamin B6", 1176: "Folate", 1177: "Vitamin B12",
+        1178: "Vitamin K",
+      };
+
+      const foods = (data.foods || []).map((food: any) => {
+        const nutrients = (food.foodNutrients || [])
+          .filter((n: any) => KEY_NUTRIENTS.includes(n.nutrientId) && n.value > 0)
+          .map((n: any) => ({
+            name: NUTRIENT_NAMES[n.nutrientId] || n.nutrientName,
+            value: Math.round(n.value * 10) / 10,
+            unit: n.unitName?.toLowerCase() || "",
+          }))
+          .slice(0, 8);
+
+        return {
+          fdcId: food.fdcId,
+          name: food.description,
+          nutrients,
+        };
+      });
+
+      res.json({ foods });
+    } catch (error) {
+      console.error("Food search error:", error);
+      res.status(500).json({ error: "Failed to search foods" });
+    }
+  });
+
+  // AI recipe generation from selected ingredients
+  app.post("/api/generate-recipe", async (req, res) => {
+    try {
+      const { ingredients, phase, dietaryPreferences, allergies } = req.body;
+
+      if (!ingredients || ingredients.length === 0) {
+        return res.status(400).json({ error: "No ingredients selected" });
+      }
+
+      const dietContext = buildDietaryContext(dietaryPreferences || [], allergies || []);
+
+      const prompt = `You are a cycle-syncing nutritionist and chef. A woman is in her ${phase || "follicular"} phase.${dietContext}
+
+She has selected these ingredients to cook with: ${ingredients.join(", ")}.
+
+Create ONE delicious, healthy recipe using as many of her selected ingredients as possible. The recipe should be optimized for her ${phase || "follicular"} phase nutritional needs.
+
+Respond in this exact JSON format (no markdown, no code fences):
+{
+  "name": "Recipe Name",
+  "prepTime": 25,
+  "description": "One sentence about why this recipe is great for her current phase.",
+  "phaseWhy": "One sentence about which key nutrients this provides for her phase.",
+  "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount"],
+  "steps": ["Step 1 instruction", "Step 2 instruction"],
+  "tip": "One phase-specific nutrition tip related to this recipe."
+}`;
+
+      const completion = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        max_completion_tokens: 1024,
+      });
+
+      const raw = completion.choices[0]?.message?.content || "";
+      const recipe = JSON.parse(raw);
+      res.json({ recipe });
+    } catch (error) {
+      console.error("Recipe generation error:", error);
+      res.status(500).json({ error: "Failed to generate recipe" });
     }
   });
 
