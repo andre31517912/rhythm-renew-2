@@ -9,21 +9,23 @@ interface RecipeCardProps {
   type: "recipe";
   data: DailyRecipe;
   phaseColor: string;
-  onSwap: () => void;
+  onSwap?: () => void;
+  showSwap?: boolean;
 }
 
 interface WorkoutCardProps {
   type: "workout";
   data: DailyWorkout;
   phaseColor: string;
-  onSwap: () => void;
+  onSwap?: () => void;
+  showSwap?: boolean;
 }
 
 type DayPlanCardProps = RecipeCardProps | WorkoutCardProps;
 
 export function DayPlanCard(props: DayPlanCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const { type, phaseColor, onSwap } = props;
+  const { type, phaseColor, onSwap, showSwap = true } = props;
 
   const isRecipe = type === "recipe";
   const data = props.data;
@@ -52,17 +54,19 @@ export function DayPlanCard(props: DayPlanCardProps) {
             {data.name}
           </Text>
         </View>
-        <Pressable
-          style={styles.swapBtn}
-          hitSlop={12}
-          onPress={(e) => {
-            e.stopPropagation();
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onSwap();
-          }}
-        >
-          <Ionicons name="shuffle" size={18} color={Colors.gray} />
-        </Pressable>
+        {showSwap && onSwap && (
+          <Pressable
+            style={styles.swapBtn}
+            hitSlop={12}
+            onPress={(e) => {
+              e.stopPropagation();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onSwap();
+            }}
+          >
+            <Ionicons name="shuffle" size={18} color={Colors.gray} />
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.metaRow}>

@@ -21,6 +21,7 @@ import { WaveHeader } from "@/components/WaveHeader";
 import { useRouter } from "expo-router";
 import { getApiUrl } from "@/lib/query-client";
 import { usePhasePlan } from "@/hooks/usePhasePlan";
+import { DayPlanCard } from "@/components/DayPlanCard";
 
 const getEbookUrl = () => new URL("/assets/downloads/rhythm-renew-guide.pdf", getApiUrl()).toString();
 const PHASE_COLORS: Record<string, string> = {
@@ -144,25 +145,44 @@ export default function HomeScreen() {
         {/* Today's Recommendations */}
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Recommendations</Text>
+          {todaysPlan ? (
+            <View style={styles.todayPlanCards}>
+              <DayPlanCard
+                type="recipe"
+                data={todaysPlan.recipe}
+                phaseColor={phaseColor}
+                showSwap={false}
+              />
+              <DayPlanCard
+                type="workout"
+                data={todaysPlan.workout}
+                phaseColor={phaseColor}
+                showSwap={false}
+              />
+            </View>
+          ) : (
+            <View style={styles.cardsGrid}>
+              <RecommendationCard
+                icon="restaurant"
+                label="Today's Recipe"
+                title={recs.nutrition.title}
+                subtitle={recs.nutrition.detail}
+                accent={phaseColor}
+                onPress={() => router.push("/(tabs)/body")}
+                cta="View Recipe"
+              />
+              <RecommendationCard
+                icon="barbell"
+                label="Today's Workout"
+                title={recs.workout.title}
+                accent={phaseColor}
+                onPress={() => router.push("/(tabs)/body")}
+                cta="Start Workout"
+              />
+            </View>
+          )}
+
           <View style={styles.cardsGrid}>
-            <RecommendationCard
-              icon="restaurant"
-              label="Today's Recipe"
-              title={todaysPlan?.recipe.name ?? recs.nutrition.title}
-              subtitle={todaysPlan ? `${todaysPlan.recipe.prepTime} min prep` : recs.nutrition.detail}
-              accent={phaseColor}
-              onPress={() => router.push("/(tabs)/body")}
-              cta="View Recipe"
-            />
-            <RecommendationCard
-              icon="barbell"
-              label="Today's Workout"
-              title={todaysPlan?.workout.name ?? recs.workout.title}
-              subtitle={todaysPlan ? `${todaysPlan.workout.duration} min · ${todaysPlan.workout.intensity}` : undefined}
-              accent={phaseColor}
-              onPress={() => router.push("/(tabs)/body")}
-              cta="Start Workout"
-            />
             <RecommendationCard
               icon="create"
               label="Journal"
@@ -382,6 +402,11 @@ const styles = StyleSheet.create({
     color: "#FFB3C6",
     marginBottom: 14,
     paddingHorizontal: 20,
+  },
+  todayPlanCards: {
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 14,
   },
   cardsGrid: {
     flexDirection: "row",

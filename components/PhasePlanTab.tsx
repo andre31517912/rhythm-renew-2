@@ -120,13 +120,13 @@ export function PhasePlanTab({
               type="recipe"
               data={dayPlan.recipe}
               phaseColor={phaseColor}
-              onSwap={() => swapRecipe(dayPlan.day)}
+              showSwap={false}
             />
             <DayPlanCard
               type="workout"
               data={dayPlan.workout}
               phaseColor={phaseColor}
-              onSwap={() => swapWorkout(dayPlan.day)}
+              showSwap={false}
             />
           </Animated.View>
         );
