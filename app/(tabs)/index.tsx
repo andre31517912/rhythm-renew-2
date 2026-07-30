@@ -20,6 +20,7 @@ import Colors from "@/constants/colors";
 import { WaveHeader } from "@/components/WaveHeader";
 import { useRouter } from "expo-router";
 import { getApiUrl } from "@/lib/query-client";
+import { usePhasePlan } from "@/hooks/usePhasePlan";
 
 const getEbookUrl = () => new URL("/assets/downloads/rhythm-renew-guide.pdf", getApiUrl()).toString();
 const PHASE_COLORS: Record<string, string> = {
@@ -79,6 +80,7 @@ export default function HomeScreen() {
   const recs = phaseInfo ? PHASE_RECOMMENDATIONS[phaseInfo.phase] : PHASE_RECOMMENDATIONS.follicular;
   const phaseColor = phaseInfo?.color || Colors.hotPink;
   const phaseColorLight = phaseInfo?.colorLight || Colors.blushLight;
+  const { todaysPlan } = usePhasePlan();
 
   return (
     <View style={[styles.container]}>
@@ -144,12 +146,22 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Today's Recommendations</Text>
           <View style={styles.cardsGrid}>
             <RecommendationCard
-              icon="barbell"
-              label="Movement"
-              title={recs.workout.title}
+              icon="restaurant"
+              label="Today's Recipe"
+              title={todaysPlan?.recipe.name ?? recs.nutrition.title}
+              subtitle={todaysPlan ? `${todaysPlan.recipe.prepTime} min prep` : recs.nutrition.detail}
               accent={phaseColor}
               onPress={() => router.push("/(tabs)/body")}
-              cta="View Workouts"
+              cta="View Recipe"
+            />
+            <RecommendationCard
+              icon="barbell"
+              label="Today's Workout"
+              title={todaysPlan?.workout.name ?? recs.workout.title}
+              subtitle={todaysPlan ? `${todaysPlan.workout.duration} min · ${todaysPlan.workout.intensity}` : undefined}
+              accent={phaseColor}
+              onPress={() => router.push("/(tabs)/body")}
+              cta="Start Workout"
             />
             <RecommendationCard
               icon="create"
@@ -161,15 +173,6 @@ export default function HomeScreen() {
               cta="Write Today"
             />
             <RecommendationCard
-              icon="flask"
-              label="Protein"
-              title={recs.protein.title}
-              subtitle={recs.protein.detail}
-              accent={phaseColor}
-              onPress={() => WebBrowser.openBrowserAsync("https://www.rhythmrenew.com/product-page/rhythm-vanilla-protein-blend-cycle-supporting-nutrition")}
-              cta="Shop Now"
-            />
-            <RecommendationCard
               icon="musical-notes"
               label="Music Vibe"
               title={recs.music.title}
@@ -179,6 +182,35 @@ export default function HomeScreen() {
               cta="Open Music"
             />
           </View>
+
+          {/* Phase Plan Progress */}
+          {phaseInfo && todaysPlan && (
+            <Pressable
+              style={[styles.planProgress, { borderColor: phaseColor + "40" }]}
+              onPress={() => router.push("/(tabs)/body")}
+            >
+              <View style={styles.planProgressRow}>
+                <Ionicons name="calendar" size={16} color={phaseColor} />
+                <Text style={styles.planProgressText}>
+                  Day {phaseInfo.phaseDay} of {phaseInfo.phaseLength} · {phaseInfo.phaseName} Plan
+                </Text>
+                <View style={{ flex: 1 }} />
+                <Text style={[styles.planProgressLink, { color: phaseColor }]}>View Full Plan</Text>
+                <Ionicons name="chevron-forward" size={14} color={phaseColor} />
+              </View>
+              <View style={styles.planProgressBar}>
+                <View
+                  style={[
+                    styles.planProgressFill,
+                    {
+                      width: `${(phaseInfo.phaseDay / phaseInfo.phaseLength) * 100}%`,
+                      backgroundColor: phaseColor,
+                    },
+                  ]}
+                />
+              </View>
+            </Pressable>
+          )}
         </Animated.View>
 
         {/* Phase Description */}
@@ -408,6 +440,39 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope_600SemiBold",
     fontSize: 10,
     color: Colors.white,
+  },
+  planProgress: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    backgroundColor: "rgba(252,228,236,0.08)",
+  },
+  planProgressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  planProgressText: {
+    fontFamily: "Manrope_500Medium",
+    fontSize: 13,
+    color: "#FFB3C6",
+  },
+  planProgressLink: {
+    fontFamily: "Manrope_600SemiBold",
+    fontSize: 12,
+  },
+  planProgressBar: {
+    height: 4,
+    backgroundColor: "rgba(255,179,198,0.2)",
+    borderRadius: 2,
+    marginTop: 10,
+    overflow: "hidden",
+  },
+  planProgressFill: {
+    height: "100%",
+    borderRadius: 2,
   },
   phaseDescCard: {
     borderRadius: 20,

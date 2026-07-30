@@ -18,6 +18,7 @@ import Colors from "@/constants/colors";
 import { WaveHeader } from "@/components/WaveHeader";
 import { AIRecommendCard } from "@/components/AIRecommendCard";
 import { NutritionTab } from "@/components/NutritionTab";
+import { PhasePlanTab } from "@/components/PhasePlanTab";
 
 
 const WORKOUTS = {
@@ -45,7 +46,7 @@ const WORKOUTS = {
 
 
 
-type Tab = "movement" | "nutrition";
+type Tab = "movement" | "nutrition" | "plan";
 
 export default function BodyScreen() {
   const insets = useSafeAreaInsets();
@@ -68,6 +69,36 @@ export default function BodyScreen() {
     Flexibility: "#A82030",
   };
 
+  const TAB_CONFIG: { key: Tab; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+    { key: "movement", icon: "fitness", label: "Movement" },
+    { key: "nutrition", icon: "nutrition", label: "Nutrition" },
+    { key: "plan", icon: "calendar", label: "Plan" },
+  ];
+
+  const renderTabRow = () => (
+    <View style={styles.tabRow}>
+      {TAB_CONFIG.map(({ key, icon, label }) => (
+        <Pressable
+          key={key}
+          style={[styles.tab, activeTab === key && { ...styles.tabActive, backgroundColor: phaseColor }]}
+          onPress={() => {
+            setActiveTab(key);
+            Haptics.selectionAsync();
+          }}
+        >
+          <Ionicons
+            name={icon}
+            size={16}
+            color={activeTab === key ? Colors.white : Colors.gray}
+          />
+          <Text style={[styles.tabText, activeTab === key && styles.tabTextActive]}>
+            {label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -81,29 +112,9 @@ export default function BodyScreen() {
           <Text style={styles.headerSub}>Movement & Nutrition</Text>
         </WaveHeader>
 
-        <View style={styles.tabRow}>
-          {(["movement", "nutrition"] as Tab[]).map((t) => (
-            <Pressable
-              key={t}
-              style={[styles.tab, activeTab === t && { ...styles.tabActive, backgroundColor: phaseColor }]}
-              onPress={() => {
-                setActiveTab(t);
-                Haptics.selectionAsync();
-              }}
-            >
-              <Ionicons
-                name={t === "movement" ? "fitness" : "nutrition"}
-                size={16}
-                color={activeTab === t ? Colors.white : Colors.gray}
-              />
-              <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>
-                {t === "movement" ? "Movement" : "Nutrition"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {renderTabRow()}
 
-        {activeTab === "movement" ? (
+        {activeTab === "movement" && (
           <Animated.View entering={FadeInDown.duration(300)} style={styles.content}>
             <AIRecommendCard
               phase={phase}
@@ -157,13 +168,26 @@ export default function BodyScreen() {
               );
             })}
           </Animated.View>
-        ) : (
+        )}
+
+        {activeTab === "nutrition" && (
           <NutritionTab
             phase={phase}
             phaseColor={phaseColor}
             phaseColorLight={phaseColorLight}
             phaseName={phaseInfo?.phaseName || "Follicular"}
             cycleDay={phaseInfo?.cycleDay ?? 1}
+          />
+        )}
+
+        {activeTab === "plan" && (
+          <PhasePlanTab
+            phase={phase}
+            phaseColor={phaseColor}
+            phaseColorLight={phaseColorLight}
+            phaseName={phaseInfo?.phaseName || "Follicular"}
+            phaseDay={phaseInfo?.phaseDay ?? 1}
+            phaseLength={phaseInfo?.phaseLength ?? 5}
           />
         )}
       </ScrollView>
