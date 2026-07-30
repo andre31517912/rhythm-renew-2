@@ -250,6 +250,75 @@ Respond in this exact JSON format (no markdown, no code fences):
     }
   });
 
+  // AI phase plan generation — fresh recipes + workouts per cycle
+  app.post("/api/generate-phase-plan", async (req, res) => {
+    try {
+      const { phase, phaseLength, dietaryPreferences, allergies } = req.body;
+
+      if (!phase || !phaseLength) {
+        return res.status(400).json({ error: "Missing required fields: phase, phaseLength" });
+      }
+
+      const dietContext = buildDietaryContext(dietaryPreferences || [], allergies || []);
+
+      const prompt = `You are a cycle-syncing nutritionist and fitness coach. A woman is entering her ${phase} phase which lasts ${phaseLength} days.${dietContext}
+
+Generate a ${phaseLength}-day meal and workout plan. Each day needs ONE recipe and ONE workout optimized for the ${phase} phase.
+
+Rules:
+- Every recipe must be DIFFERENT — no repeats across the ${phaseLength} days
+- Recipes should focus on the key nutrients for the ${phase} phase
+- Workouts should match the energy level and safe muscle groups for the ${phase} phase
+- If she has dietary preferences, ALL recipes must comply. If she has allergies, NEVER include those allergens.
+- Vary cuisine styles, cooking methods, and workout types across the days
+
+Respond in this exact JSON format (no markdown, no code fences):
+{
+  "recipes": [
+    {
+      "name": "Recipe Name",
+      "prepTime": 25,
+      "description": "One sentence about why this is great for this phase.",
+      "dietTags": ["vegan", "gluten-free"],
+      "allergens": [],
+      "nutrients": ["iron", "magnesium"],
+      "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount"],
+      "steps": ["Step 1", "Step 2"]
+    }
+  ],
+  "workouts": [
+    {
+      "name": "Workout Name",
+      "type": "yoga",
+      "duration": 30,
+      "intensity": "low",
+      "description": "One sentence about why this workout fits this phase.",
+      "warmup": "3 min warmup description",
+      "cooldown": "3 min cooldown description",
+      "exercises": [
+        { "name": "Exercise Name", "sets": 3, "reps": "12", "notes": "Form tip" }
+      ]
+    }
+  ]
+}
+
+Generate exactly ${phaseLength} recipes and ${Math.min(phaseLength, 5)} workouts.`;
+
+      const completion = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        max_completion_tokens: 4096,
+      });
+
+      const raw = completion.choices[0]?.message?.content || "";
+      const plan = JSON.parse(raw);
+      res.json(plan);
+    } catch (error) {
+      console.error("Phase plan generation error:", error);
+      res.status(500).json({ error: "Failed to generate phase plan" });
+    }
+  });
+
   // Spotify track preview endpoint — returns 30s preview_url for a song
   app.get("/api/spotify/preview", async (req, res) => {
     try {

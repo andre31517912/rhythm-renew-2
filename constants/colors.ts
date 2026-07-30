@@ -21,12 +21,12 @@ const COLORS = {
 
   menstrual: "#C0004A",
   menstrualLight: "#ffd0e4",
-  follicular: "#E86A00",
-  follicularLight: "#FFD4B3",
-  ovulatory: "#00A878",
-  ovulatoryLight: "#B3FFE6",
-  luteal: "#6B3FA0",
-  lutealLight: "#DCC0F5",
+  follicular: "#D4217A",
+  follicularLight: "#fce4ec",
+  ovulatory: "#e8006a",
+  ovulatoryLight: "#FFD6E3",
+  luteal: "#C2185B",
+  lutealLight: "#f7c5d5",
 };
 
 export default {
