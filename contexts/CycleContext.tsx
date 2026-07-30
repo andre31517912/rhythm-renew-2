@@ -12,6 +12,7 @@ export interface CycleData {
   dietaryPreferences: string[];
   allergies: string[];
   favoriteIngredients: string[];
+  isPremium: boolean;
 }
 
 export interface PhaseInfo {
@@ -129,6 +130,7 @@ const defaultCycleData: CycleData = {
   dietaryPreferences: [],
   allergies: [],
   favoriteIngredients: [],
+  isPremium: false,
 };
 
 const CycleContext = createContext<CycleContextValue | null>(null);

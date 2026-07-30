@@ -22,7 +22,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import { useCycle, type Phase } from "@/contexts/CycleContext";
 import { AIRecommendCard } from "@/components/AIRecommendCard";
-import { PHASE_NUTRIENTS, filterFoodsByDiet, type Nutrient, type NutrientFood } from "@/data/phase-nutrients";
+import { PHASE_NUTRIENTS, filterFoodsByDiet, type Nutrient } from "@/data/phase-nutrients";
 import { getApiUrl } from "@/lib/query-client";
 
 interface FoodSearchResult {
@@ -61,6 +61,7 @@ function NutrientCard({
   selectedIngredients,
   dietaryPreferences,
   allergies,
+  isPremium,
 }: {
   nutrient: Nutrient;
   phaseColor: string;
@@ -68,6 +69,7 @@ function NutrientCard({
   selectedIngredients: string[];
   dietaryPreferences: string[];
   allergies: string[];
+  isPremium: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const rotation = useSharedValue(0);
@@ -102,21 +104,22 @@ function NutrientCard({
       {expanded && (
         <Animated.View entering={FadeInDown.duration(200)} style={styles.foodList}>
           <Text style={[styles.foodListLabel, { color: phaseColor }]}>
-            Rich sources — tap to add to your recipe
+            {isPremium ? "Rich sources — tap to add to your recipe" : "Rich sources"}
           </Text>
           {filterFoodsByDiet(nutrient.foods, dietaryPreferences, allergies).map((food, i) => {
-            const isSelected = selectedIngredients.includes(food.name);
+            const isSelected = isPremium && selectedIngredients.includes(food.name);
             return (
               <Pressable
                 key={i}
                 onPress={() => {
+                  if (!isPremium) return;
                   Haptics.selectionAsync();
                   onSelectFood(food.name);
                 }}
                 style={({ pressed }) => [
                   styles.foodItem,
                   isSelected && { backgroundColor: phaseColor + "14" },
-                  pressed && { opacity: 0.8 },
+                  isPremium && pressed && { opacity: 0.8 },
                 ]}
               >
                 <Text style={styles.foodEmoji}>{food.emoji}</Text>
@@ -126,11 +129,13 @@ function NutrientCard({
                   </Text>
                   <Text style={styles.foodDetail}>{food.detail}</Text>
                 </View>
-                <Ionicons
-                  name={isSelected ? "checkmark-circle" : "add-circle-outline"}
-                  size={22}
-                  color={isSelected ? phaseColor : Colors.grayLight}
-                />
+                {isPremium && (
+                  <Ionicons
+                    name={isSelected ? "checkmark-circle" : "add-circle-outline"}
+                    size={22}
+                    color={isSelected ? phaseColor : Colors.grayLight}
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -270,8 +275,47 @@ function IngredientSearch({
   );
 }
 
+function PremiumGateCard({ phaseColor }: { phaseColor: string }) {
+  return (
+    <Animated.View entering={FadeInDown.duration(400)} style={styles.premiumCard}>
+      <LinearGradient
+        colors={[phaseColor + "15", phaseColor + "08"]}
+        style={styles.premiumGradient}
+      >
+        <View style={[styles.premiumIconWrap, { backgroundColor: phaseColor + "20" }]}>
+          <Ionicons name="sparkles" size={28} color={phaseColor} />
+        </View>
+        <Text style={styles.premiumTitle}>AI Recipe Builder</Text>
+        <Text style={styles.premiumSub}>
+          Pick ingredients from the nutrients above, search any food, and let AI create a personalized recipe optimized for your phase.
+        </Text>
+
+        <View style={styles.premiumFeatures}>
+          {[
+            "Pick from phase-specific nutrient foods",
+            "Search any ingredient with USDA data",
+            "AI generates recipes for your phase & diet",
+            "Unlimited recipe generation",
+          ].map((feature, i) => (
+            <View key={i} style={styles.premiumFeatureRow}>
+              <Ionicons name="checkmark-circle" size={16} color={phaseColor} />
+              <Text style={styles.premiumFeatureText}>{feature}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={[styles.premiumBtn, { backgroundColor: phaseColor }]}>
+          <Ionicons name="lock-closed" size={16} color={Colors.white} />
+          <Text style={styles.premiumBtnText}>Upgrade to Premium</Text>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+}
+
 export function NutritionTab({ phase, phaseColor, phaseColorLight, phaseName, cycleDay }: Props) {
-  const { cycleData, setCycleData } = useCycle();
+  const { cycleData } = useCycle();
+  const isPremium = cycleData.isPremium ?? false;
   const [selectedIngredients, setSelectedIngredients] = useState<SelectedIngredient[]>([]);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -352,7 +396,9 @@ export function NutritionTab({ phase, phaseColor, phaseColorLight, phaseName, cy
       {/* Expandable Nutrient Cards */}
       <Text style={styles.sectionTitle}>Key Nutrients</Text>
       <Text style={styles.sectionSub}>
-        Tap each nutrient to see foods rich in it — select ingredients to build your recipe
+        {isPremium
+          ? "Tap each nutrient to see foods rich in it — select ingredients to build your recipe"
+          : "Tap each nutrient to explore foods rich in it for your phase"}
       </Text>
 
       {phaseData.nutrients.map((nutrient) => (
@@ -364,6 +410,7 @@ export function NutritionTab({ phase, phaseColor, phaseColorLight, phaseName, cy
           selectedIngredients={ingredientNames}
           dietaryPreferences={cycleData.dietaryPreferences || []}
           allergies={cycleData.allergies || []}
+          isPremium={isPremium}
         />
       ))}
 
@@ -380,168 +427,170 @@ export function NutritionTab({ phase, phaseColor, phaseColorLight, phaseName, cy
         </View>
       </View>
 
-      {/* Build Your Recipe Section */}
-      <View style={styles.recipeBuilderSection}>
-        <LinearGradient
-          colors={[phaseColor + "12", phaseColor + "06"]}
-          style={styles.recipeBuilderGradient}
-        >
-          <View style={styles.recipeBuilderHeader}>
-            <View style={[styles.recipeBuilderIcon, { backgroundColor: phaseColor }]}>
-              <Ionicons name="restaurant" size={20} color={Colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.recipeBuilderTitle}>Build Your Recipe</Text>
-              <Text style={styles.recipeBuilderSub}>
-                Pick ingredients from nutrients above or search for any food
-              </Text>
-            </View>
-          </View>
-
-          {/* Search Bar */}
-          <IngredientSearch
-            phaseColor={phaseColor}
-            onSelect={(name) => toggleIngredient(name, "search")}
-            selectedIngredients={ingredientNames}
-          />
-
-          {/* Selected Ingredients */}
-          {selectedIngredients.length > 0 && (
-            <View style={styles.selectedSection}>
-              <Text style={[styles.selectedLabel, { color: phaseColor }]}>
-                Selected ({selectedIngredients.length})
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.selectedScroll}
-              >
-                {selectedIngredients.map((ing, i) => (
-                  <Pressable
-                    key={i}
-                    onPress={() => toggleIngredient(ing.name)}
-                    style={[styles.selectedChip, { backgroundColor: phaseColor + "18", borderColor: phaseColor + "40" }]}
-                  >
-                    <Text style={[styles.selectedChipText, { color: phaseColor }]}>{ing.name}</Text>
-                    <Ionicons name="close" size={14} color={phaseColor} />
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Generate Button */}
-          <Pressable
-            onPress={generateRecipe}
-            disabled={selectedIngredients.length === 0 || generating}
-            style={({ pressed }) => [
-              styles.generateBtn,
-              {
-                backgroundColor: selectedIngredients.length > 0 ? phaseColor : Colors.grayLight,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}
-          >
-            {generating ? (
-              <>
-                <ActivityIndicator size="small" color={Colors.white} />
-                <Text style={styles.generateBtnText}>Generating your recipe...</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="sparkles" size={18} color={Colors.white} />
-                <Text style={styles.generateBtnText}>
-                  {selectedIngredients.length === 0
-                    ? "Select ingredients first"
-                    : `Generate Recipe with ${selectedIngredients.length} ingredient${selectedIngredients.length > 1 ? "s" : ""}`}
-                </Text>
-              </>
-            )}
-          </Pressable>
-
-          {genError && (
-            <Pressable onPress={generateRecipe} style={styles.errorRow}>
-              <Ionicons name="alert-circle" size={16} color="#C0392B" />
-              <Text style={styles.errorText}>{genError}</Text>
-            </Pressable>
-          )}
-        </LinearGradient>
-      </View>
-
-      {/* Generated Recipe Display */}
-      {generatedRecipe && (
-        <Animated.View entering={FadeInDown.duration(400)}>
-          <View style={[styles.generatedRecipe, { borderLeftColor: phaseColor }]}>
-            <View style={styles.generatedHeader}>
-              <View style={[styles.generatedIconWrap, { backgroundColor: phaseColor + "18" }]}>
-                <Ionicons name="sparkles" size={24} color={phaseColor} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.generatedLabel}>AI-Generated Recipe</Text>
-                <Text style={styles.generatedName}>{generatedRecipe.name}</Text>
-                <View style={styles.generatedTimeBadge}>
-                  <Ionicons name="time-outline" size={12} color={phaseColor} />
-                  <Text style={[styles.generatedTime, { color: phaseColor }]}>
-                    {generatedRecipe.prepTime} min
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <Text style={styles.generatedDesc}>{generatedRecipe.description}</Text>
-
-            <View style={[styles.phaseWhyBadge, { backgroundColor: phaseColor + "12" }]}>
-              <Ionicons name="heart" size={14} color={phaseColor} />
-              <Text style={[styles.phaseWhyText, { color: phaseColor }]}>
-                {generatedRecipe.phaseWhy}
-              </Text>
-            </View>
-
-            <View style={[styles.recipeBox, { backgroundColor: phaseColor + "10" }]}>
-              <Text style={[styles.recipeBoxLabel, { color: phaseColor }]}>Ingredients</Text>
-              {generatedRecipe.ingredients.map((ing, j) => (
-                <View key={j} style={styles.recipeBoxRow}>
-                  <View style={[styles.recipeBoxDot, { backgroundColor: phaseColor }]} />
-                  <Text style={styles.recipeBoxText}>{ing}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={[styles.recipeBox, { backgroundColor: phaseColor + "08", marginTop: 8 }]}>
-              <Text style={[styles.recipeBoxLabel, { color: phaseColor }]}>Steps</Text>
-              {generatedRecipe.steps.map((step, j) => (
-                <View key={j} style={styles.recipeBoxRow}>
-                  <Text
-                    style={[
-                      styles.recipeBoxText,
-                      { fontFamily: "Manrope_600SemiBold", color: phaseColor, minWidth: 22 },
-                    ]}
-                  >
-                    {j + 1}.
-                  </Text>
-                  <Text style={[styles.recipeBoxText, { flex: 1 }]}>{step}</Text>
-                </View>
-              ))}
-            </View>
-
-            {generatedRecipe.tip && (
-              <View style={styles.tipRow}>
-                <Ionicons name="bulb-outline" size={14} color={phaseColor} />
-                <Text style={styles.tipText}>{generatedRecipe.tip}</Text>
-              </View>
-            )}
-
-            <Pressable
-              onPress={generateRecipe}
-              style={[styles.regenerateBtn, { borderColor: phaseColor + "40" }]}
+      {/* Premium Gate or Recipe Builder */}
+      {!isPremium ? (
+        <PremiumGateCard phaseColor={phaseColor} />
+      ) : (
+        <>
+          <View style={styles.recipeBuilderSection}>
+            <LinearGradient
+              colors={[phaseColor + "12", phaseColor + "06"]}
+              style={styles.recipeBuilderGradient}
             >
-              <Ionicons name="refresh" size={16} color={phaseColor} />
-              <Text style={[styles.regenerateBtnText, { color: phaseColor }]}>
-                Generate Another Recipe
-              </Text>
-            </Pressable>
+              <View style={styles.recipeBuilderHeader}>
+                <View style={[styles.recipeBuilderIcon, { backgroundColor: phaseColor }]}>
+                  <Ionicons name="restaurant" size={20} color={Colors.white} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.recipeBuilderTitle}>Build Your Recipe</Text>
+                  <Text style={styles.recipeBuilderSub}>
+                    Pick ingredients from nutrients above or search for any food
+                  </Text>
+                </View>
+              </View>
+
+              <IngredientSearch
+                phaseColor={phaseColor}
+                onSelect={(name) => toggleIngredient(name, "search")}
+                selectedIngredients={ingredientNames}
+              />
+
+              {selectedIngredients.length > 0 && (
+                <View style={styles.selectedSection}>
+                  <Text style={[styles.selectedLabel, { color: phaseColor }]}>
+                    Selected ({selectedIngredients.length})
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.selectedScroll}
+                  >
+                    {selectedIngredients.map((ing, i) => (
+                      <Pressable
+                        key={i}
+                        onPress={() => toggleIngredient(ing.name)}
+                        style={[styles.selectedChip, { backgroundColor: phaseColor + "18", borderColor: phaseColor + "40" }]}
+                      >
+                        <Text style={[styles.selectedChipText, { color: phaseColor }]}>{ing.name}</Text>
+                        <Ionicons name="close" size={14} color={phaseColor} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Pressable
+                onPress={generateRecipe}
+                disabled={selectedIngredients.length === 0 || generating}
+                style={({ pressed }) => [
+                  styles.generateBtn,
+                  {
+                    backgroundColor: selectedIngredients.length > 0 ? phaseColor : Colors.grayLight,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                {generating ? (
+                  <>
+                    <ActivityIndicator size="small" color={Colors.white} />
+                    <Text style={styles.generateBtnText}>Generating your recipe...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="sparkles" size={18} color={Colors.white} />
+                    <Text style={styles.generateBtnText}>
+                      {selectedIngredients.length === 0
+                        ? "Select ingredients first"
+                        : `Generate Recipe with ${selectedIngredients.length} ingredient${selectedIngredients.length > 1 ? "s" : ""}`}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+
+              {genError && (
+                <Pressable onPress={generateRecipe} style={styles.errorRow}>
+                  <Ionicons name="alert-circle" size={16} color="#C0392B" />
+                  <Text style={styles.errorText}>{genError}</Text>
+                </Pressable>
+              )}
+            </LinearGradient>
           </View>
-        </Animated.View>
+
+          {generatedRecipe && (
+            <Animated.View entering={FadeInDown.duration(400)}>
+              <View style={[styles.generatedRecipe, { borderLeftColor: phaseColor }]}>
+                <View style={styles.generatedHeader}>
+                  <View style={[styles.generatedIconWrap, { backgroundColor: phaseColor + "18" }]}>
+                    <Ionicons name="sparkles" size={24} color={phaseColor} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.generatedLabel}>AI-Generated Recipe</Text>
+                    <Text style={styles.generatedName}>{generatedRecipe.name}</Text>
+                    <View style={styles.generatedTimeBadge}>
+                      <Ionicons name="time-outline" size={12} color={phaseColor} />
+                      <Text style={[styles.generatedTime, { color: phaseColor }]}>
+                        {generatedRecipe.prepTime} min
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <Text style={styles.generatedDesc}>{generatedRecipe.description}</Text>
+
+                <View style={[styles.phaseWhyBadge, { backgroundColor: phaseColor + "12" }]}>
+                  <Ionicons name="heart" size={14} color={phaseColor} />
+                  <Text style={[styles.phaseWhyText, { color: phaseColor }]}>
+                    {generatedRecipe.phaseWhy}
+                  </Text>
+                </View>
+
+                <View style={[styles.recipeBox, { backgroundColor: phaseColor + "10" }]}>
+                  <Text style={[styles.recipeBoxLabel, { color: phaseColor }]}>Ingredients</Text>
+                  {generatedRecipe.ingredients.map((ing, j) => (
+                    <View key={j} style={styles.recipeBoxRow}>
+                      <View style={[styles.recipeBoxDot, { backgroundColor: phaseColor }]} />
+                      <Text style={styles.recipeBoxText}>{ing}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={[styles.recipeBox, { backgroundColor: phaseColor + "08", marginTop: 8 }]}>
+                  <Text style={[styles.recipeBoxLabel, { color: phaseColor }]}>Steps</Text>
+                  {generatedRecipe.steps.map((step, j) => (
+                    <View key={j} style={styles.recipeBoxRow}>
+                      <Text
+                        style={[
+                          styles.recipeBoxText,
+                          { fontFamily: "Manrope_600SemiBold", color: phaseColor, minWidth: 22 },
+                        ]}
+                      >
+                        {j + 1}.
+                      </Text>
+                      <Text style={[styles.recipeBoxText, { flex: 1 }]}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {generatedRecipe.tip && (
+                  <View style={styles.tipRow}>
+                    <Ionicons name="bulb-outline" size={14} color={phaseColor} />
+                    <Text style={styles.tipText}>{generatedRecipe.tip}</Text>
+                  </View>
+                )}
+
+                <Pressable
+                  onPress={generateRecipe}
+                  style={[styles.regenerateBtn, { borderColor: phaseColor + "40" }]}
+                >
+                  <Ionicons name="refresh" size={16} color={phaseColor} />
+                  <Text style={[styles.regenerateBtnText, { color: phaseColor }]}>
+                    Generate Another Recipe
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          )}
+        </>
       )}
     </Animated.View>
   );
@@ -705,6 +754,72 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope_500Medium",
     fontSize: 12,
     color: Colors.hotPink,
+  },
+
+  // Premium Gate Card
+  premiumCard: {
+    marginHorizontal: 20,
+    marginTop: 32,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  premiumGradient: {
+    padding: 24,
+    alignItems: "center",
+  },
+  premiumIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  premiumTitle: {
+    fontFamily: "PlayfairDisplay_700Bold",
+    fontSize: 22,
+    color: Colors.blushLight,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  premiumSub: {
+    fontFamily: "Manrope_400Regular",
+    fontSize: 13,
+    color: "rgba(252,228,236,0.7)",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  premiumFeatures: {
+    alignSelf: "stretch",
+    gap: 10,
+    marginBottom: 24,
+  },
+  premiumFeatureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  premiumFeatureText: {
+    fontFamily: "Manrope_500Medium",
+    fontSize: 13,
+    color: Colors.blushLight,
+    flex: 1,
+  },
+  premiumBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 50,
+    alignSelf: "stretch",
+  },
+  premiumBtnText: {
+    fontFamily: "Manrope_700Bold",
+    fontSize: 15,
+    color: Colors.white,
   },
 
   // Recipe Builder
