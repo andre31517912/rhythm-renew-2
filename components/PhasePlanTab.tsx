@@ -29,7 +29,7 @@ export function PhasePlanTab({
   phaseDay,
   phaseLength,
 }: PhasePlanTabProps) {
-  const { plan, isLoading, swapRecipe, swapWorkout } = usePhasePlan();
+  const { plan, isLoading } = usePhasePlan();
 
   if (isLoading) {
     return (
