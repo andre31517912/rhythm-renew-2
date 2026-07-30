@@ -7,43 +7,43 @@ import Colors from "@/constants/colors";
 
 const { width } = Dimensions.get("window");
 
-export const WAVE_HEIGHT = 190;
+export const WAVE_HEIGHT = 80;
 
 const mediumPinkPath = `
   M0,0
   L${width},0
-  L${width},18
-  C${width * 0.82},18 ${width * 0.66},172 ${width * 0.46},172
-  C${width * 0.3},172 ${width * 0.15},70 0,70
+  L${width},8
+  C${width * 0.82},8 ${width * 0.66},72 ${width * 0.46},72
+  C${width * 0.3},72 ${width * 0.15},28 0,28
   Z
 `;
 
 const lightPinkPath = `
   M0,0
   L${width},0
-  L${width},6
-  C${width * 0.82},6 ${width * 0.66},158 ${width * 0.46},158
-  C${width * 0.3},158 ${width * 0.15},56 0,56
+  L${width},3
+  C${width * 0.82},3 ${width * 0.66},64 ${width * 0.46},64
+  C${width * 0.3},64 ${width * 0.15},22 0,22
   Z
 `;
 
-const TOP_WAVE_H = 190;
+const TOP_WAVE_H = 100;
 
 const topMediumPinkPath = `
   M0,0
   L${width},0
-  L${width},32
-  C${width * 0.82},32 ${width * 0.66},184 ${width * 0.46},184
-  C${width * 0.3},184 ${width * 0.15},84 0,84
+  L${width},14
+  C${width * 0.82},14 ${width * 0.66},92 ${width * 0.46},92
+  C${width * 0.3},92 ${width * 0.15},40 0,40
   Z
 `;
 
 const topDarkWinePath = `
   M0,0
   L${width},0
-  L${width},18
-  C${width * 0.82},18 ${width * 0.66},172 ${width * 0.46},172
-  C${width * 0.3},172 ${width * 0.15},70 0,70
+  L${width},8
+  C${width * 0.82},8 ${width * 0.66},82 ${width * 0.46},82
+  C${width * 0.3},82 ${width * 0.15},32 0,32
   Z
 `;
 
@@ -67,8 +67,8 @@ export function WaveHeader({
       <LinearGradient
         colors={[Colors.blushLight, Colors.blushLight]}
         style={{
-          paddingTop: topPad + 18,
-          paddingBottom: 12,
+          paddingTop: topPad + 12,
+          paddingBottom: 10,
           paddingHorizontal: 24,
         }}
         start={{ x: 0, y: 0 }}
@@ -84,18 +84,18 @@ export function WaveHeader({
           <Path d={topDarkWinePath} fill={Colors.pageBg} />
         </Svg>
         {showLogo && (
-          <Image
-            source={require("@/assets/images/rhythm-logo.png")}
-            style={{ width: width - 48, height: 340, marginTop: 90, marginBottom: 0 }}
-            contentFit="contain"
-            tintColor={Colors.hotPink}
-            cachePolicy="memory-disk"
-            transition={0}
-          />
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+            <Image
+              source={require("@/assets/images/rhythm-logo.png")}
+              style={{ width: 38, height: 38, marginRight: 10 }}
+              contentFit="contain"
+              tintColor={Colors.hotPink}
+              cachePolicy="memory-disk"
+              transition={0}
+            />
+          </View>
         )}
-        <View style={{ marginTop: -30 }}>
-          {children}
-        </View>
+        {children}
       </LinearGradient>
 
       <View style={{ height: WAVE_HEIGHT, backgroundColor: bgColor }}>
