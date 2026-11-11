@@ -2,6 +2,7 @@ import { getRecipesForPhase, filterRecipes, getWorkoutsForPhase } from "@/data/p
 import type { PhaseInfo, CycleData } from "@/contexts/CycleContext";
 import type { PhasePlan, DailyPlan, DailyRecipe, DailyWorkout } from "@/types/phase-plan";
 import { apiRequest } from "@/lib/query-client";
+import { getRecentRecipeNames, addRecipesToHistory } from "@/lib/recipe-history";
 
 function seededShuffle<T>(arr: T[], seed: string): T[] {
   const copy = [...arr];
@@ -23,11 +24,19 @@ export async function generateAIPlan(
 ): Promise<PhasePlan> {
   const { phase, phaseLength } = phaseInfo;
 
+  const recentRecipes = await getRecentRecipeNames();
+
   const res = await apiRequest("POST", "/api/generate-phase-plan", {
     phase,
     phaseLength,
     dietaryPreferences: cycleData.dietaryPreferences ?? [],
     allergies: cycleData.allergies ?? [],
+    cuisinePreferences: cycleData.cuisinePreferences ?? [],
+    favoriteIngredients: cycleData.favoriteIngredients ?? [],
+    cookingSkill: cycleData.cookingSkill ?? "intermediate",
+    maxCookTime: cycleData.maxCookTime ?? 30,
+    goal: cycleData.goal ?? "sync",
+    recentRecipes,
   });
 
   const data = await res.json();
@@ -66,7 +75,7 @@ export async function generateAIPlan(
     days.push({ day: d + 1, recipe: dailyRecipe, workout: dailyWorkout, swapped: false });
   }
 
-  return {
+  const plan: PhasePlan = {
     id: `plan-ai-${Date.now()}`,
     phase,
     phaseLength,
@@ -74,6 +83,12 @@ export async function generateAIPlan(
     createdAt: new Date().toISOString(),
     days,
   };
+
+  await addRecipesToHistory(
+    days.map((d) => ({ name: d.recipe.name, phase })),
+  );
+
+  return plan;
 }
 
 export function generateLocalPlan(

@@ -4,6 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export type Phase = "menstrual" | "follicular" | "ovulatory" | "luteal";
 export type Goal = "sync" | "fitness" | "hormone-balance" | "emotional-regulation";
 
+export type CookingSkill = "beginner" | "intermediate" | "advanced";
+
 export interface CycleData {
   lastPeriodStart: string | null;
   cycleLength: number;
@@ -12,6 +14,9 @@ export interface CycleData {
   dietaryPreferences: string[];
   allergies: string[];
   favoriteIngredients: string[];
+  cuisinePreferences: string[];
+  cookingSkill: CookingSkill;
+  maxCookTime: number;
   isPremium: boolean;
 }
 
@@ -130,6 +135,9 @@ const defaultCycleData: CycleData = {
   dietaryPreferences: [],
   allergies: [],
   favoriteIngredients: [],
+  cuisinePreferences: [],
+  cookingSkill: "intermediate",
+  maxCookTime: 30,
   isPremium: false,
 };
 

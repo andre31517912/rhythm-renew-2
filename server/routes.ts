@@ -10,6 +10,17 @@ const openai = new OpenAI({
 
 const AI_MODEL = process.env.AI_MODEL || "gpt-4o-mini";
 
+interface UserPreferences {
+  dietaryPreferences?: string[];
+  allergies?: string[];
+  cuisinePreferences?: string[];
+  favoriteIngredients?: string[];
+  cookingSkill?: string;
+  maxCookTime?: number;
+  goal?: string;
+  recentRecipes?: string[];
+}
+
 function buildDietaryContext(dietaryPreferences: string[], allergies: string[]): string {
   const parts: string[] = [];
   if (dietaryPreferences.length > 0) {
@@ -19,6 +30,40 @@ function buildDietaryContext(dietaryPreferences: string[], allergies: string[]):
     parts.push(`She has these allergies/intolerances: ${allergies.join(", ")}. NEVER suggest foods containing these allergens.`);
   }
   return parts.length > 0 ? "\n\n" + parts.join(" ") : "";
+}
+
+function buildFullPreferencesContext(prefs: UserPreferences): string {
+  const parts: string[] = [];
+  if (prefs.dietaryPreferences?.length) {
+    parts.push(`Diet: ${prefs.dietaryPreferences.join(", ")}.`);
+  }
+  if (prefs.allergies?.length) {
+    parts.push(`Allergies: ${prefs.allergies.join(", ")}. NEVER include these allergens.`);
+  }
+  if (prefs.cuisinePreferences?.length) {
+    parts.push(`Preferred cuisines: ${prefs.cuisinePreferences.join(", ")}. Lean toward these styles.`);
+  }
+  if (prefs.favoriteIngredients?.length) {
+    parts.push(`Favorite ingredients: ${prefs.favoriteIngredients.join(", ")}. Incorporate these when they fit the phase.`);
+  }
+  if (prefs.cookingSkill) {
+    const skillDesc: Record<string, string> = {
+      beginner: "She prefers simple recipes with few steps and common ingredients.",
+      intermediate: "She's comfortable with standard cooking techniques.",
+      advanced: "She enjoys complex techniques and adventurous recipes.",
+    };
+    parts.push(skillDesc[prefs.cookingSkill] || "");
+  }
+  if (prefs.maxCookTime) {
+    parts.push(`Max prep/cook time: ${prefs.maxCookTime} minutes.`);
+  }
+  if (prefs.goal) {
+    parts.push(`Wellness goal: ${prefs.goal}.`);
+  }
+  if (prefs.recentRecipes?.length) {
+    parts.push(`She was recently served these recipes — do NOT repeat any of them: ${prefs.recentRecipes.join(", ")}.`);
+  }
+  return parts.length > 0 ? "\n\n" + parts.join("\n") : "";
 }
 
 const CATEGORY_PROMPTS: Record<string, (phase: string, cycleDay: number, goal: string, dietaryPreferences: string[], allergies: string[]) => string> = {
@@ -253,15 +298,22 @@ Respond in this exact JSON format (no markdown, no code fences):
   // AI phase plan generation — fresh recipes + workouts per cycle
   app.post("/api/generate-phase-plan", async (req, res) => {
     try {
-      const { phase, phaseLength, dietaryPreferences, allergies } = req.body;
+      const {
+        phase, phaseLength, dietaryPreferences, allergies,
+        cuisinePreferences, favoriteIngredients, cookingSkill,
+        maxCookTime, goal, recentRecipes,
+      } = req.body;
 
       if (!phase || !phaseLength) {
         return res.status(400).json({ error: "Missing required fields: phase, phaseLength" });
       }
 
-      const dietContext = buildDietaryContext(dietaryPreferences || [], allergies || []);
+      const prefsContext = buildFullPreferencesContext({
+        dietaryPreferences, allergies, cuisinePreferences,
+        favoriteIngredients, cookingSkill, maxCookTime, goal, recentRecipes,
+      });
 
-      const prompt = `You are a cycle-syncing nutritionist and fitness coach. A woman is entering her ${phase} phase which lasts ${phaseLength} days.${dietContext}
+      const prompt = `You are a cycle-syncing nutritionist and fitness coach. A woman is entering her ${phase} phase which lasts ${phaseLength} days.${prefsContext}
 
 Generate a ${phaseLength}-day meal and workout plan. Each day needs ONE recipe and ONE workout optimized for the ${phase} phase.
 
@@ -271,6 +323,8 @@ Rules:
 - Workouts should match the energy level and safe muscle groups for the ${phase} phase
 - If she has dietary preferences, ALL recipes must comply. If she has allergies, NEVER include those allergens.
 - Vary cuisine styles, cooking methods, and workout types across the days
+- Respect her cooking skill level and time constraints
+- Incorporate her favorite ingredients and cuisine preferences when possible
 
 Respond in this exact JSON format (no markdown, no code fences):
 {
